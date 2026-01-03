@@ -188,19 +188,80 @@
 
         @media (max-width: 768px) {
             h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
             }
             
+            .subtitle {
+                font-size: 0.9em;
+            }
+
             .controls {
                 width: 95%;
                 padding: 15px;
+                bottom: 10px;
+                max-height: 40vh;
+                overflow-y: auto;
             }
 
             .camera-controls {
-                top: auto;
-                bottom: 200px;
-                right: 10px;
+                display: none; /* Ukryj na mobile - niepotrzebne gdy mamy touch */
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .info-item {
                 padding: 10px;
+            }
+
+            .info-label {
+                font-size: 0.8em;
+            }
+
+            .info-value {
+                font-size: 1em;
+            }
+
+            .season-name {
+                font-size: 1.3em;
+            }
+
+            .header {
+                padding: 10px;
+            }
+
+            .date-control {
+                margin-bottom: 15px;
+            }
+
+            .date-control input {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+
+            .info-panel {
+                padding: 15px;
+            }
+
+            .season-info {
+                padding: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+            
+            .controls {
+                max-height: 35vh;
+                padding: 12px;
+            }
+            
+            .info-item {
+                padding: 8px;
             }
         }
 
@@ -225,10 +286,13 @@
         </div>
 
         <div class="camera-controls">
-            <h3>Sterowanie kamerą:</h3>
-            <p>🖱️ Lewy przycisk: Obracanie<br>
+            <h3 id="cameraControlsTitle">Sterowanie kamerą:</h3>
+            <p id="cameraControlsText">🖱️ Lewy przycisk: Obracanie<br>
             🖱️ Prawy przycisk: Przesuwanie<br>
-            🔄 Scroll: Przybliżanie/Oddalanie</p>
+            🔄 Scroll: Przybliżanie/Oddalanie<br><br>
+            📱 Na telefonie:<br>
+            👆 Jeden palec: Obracanie<br>
+            🤏 Dwa palce: Zoom i przesuwanie</p>
         </div>
 
         <div class="controls">
@@ -588,8 +652,9 @@
             let cameraTarget = new THREE.Vector3(0, 0, 0);
 
             // Limity przesuwania
-            const PAN_LIMIT = 20; // Maksymalna odległość od centrum
+            const PAN_LIMIT = 20;
 
+            // Obsługa myszy - desktop
             renderer.domElement.addEventListener('mousedown', (e) => {
                 if (e.button === 0) isDragging = true;
                 if (e.button === 2) isPanning = true;
@@ -617,25 +682,20 @@
                     const deltaX = e.clientX - previousMousePosition.x;
                     const deltaY = e.clientY - previousMousePosition.y;
 
-                    // Oblicz kierunki przesuwania względem aktualnej pozycji kamery
                     const viewDirection = new THREE.Vector3();
                     camera.getWorldDirection(viewDirection);
                     
-                    // Wektor prawo (dla ruchu lewo-prawo)
                     const right = new THREE.Vector3();
                     right.crossVectors(viewDirection, new THREE.Vector3(0, 1, 0)).normalize();
                     
-                    // Wektor góra (dla ruchu góra-dół w płaszczyźnie ekranu)
                     const up = new THREE.Vector3();
                     up.crossVectors(right, viewDirection).normalize();
 
-                    // Przesuwanie
                     const panSpeed = 0.03;
                     const newTarget = cameraTarget.clone();
                     newTarget.add(right.multiplyScalar(-deltaX * panSpeed));
                     newTarget.add(up.multiplyScalar(deltaY * panSpeed));
 
-                    // Zastosuj limity - nie pozwól wyjść poza określony obszar
                     newTarget.x = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.x));
                     newTarget.y = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.y));
                     newTarget.z = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.z));
@@ -646,6 +706,110 @@
 
                 previousMousePosition = { x: e.clientX, y: e.clientY };
             });
+
+            // Obsługa dotyku - mobile
+            let touchStartDistance = 0;
+            let initialCameraDistance = cameraDistance;
+            let touches = [];
+
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touches = Array.from(e.touches);
+
+                if (touches.length === 1) {
+                    // Jeden palec - obracanie
+                    isDragging = true;
+                    previousMousePosition = { x: touches[0].clientX, y: touches[0].clientY };
+                } else if (touches.length === 2) {
+                    // Dwa palce - zoom i przesuwanie
+                    isDragging = false;
+                    isPanning = true;
+                    
+                    const dx = touches[0].clientX - touches[1].clientX;
+                    const dy = touches[0].clientY - touches[1].clientY;
+                    touchStartDistance = Math.sqrt(dx * dx + dy * dy);
+                    initialCameraDistance = cameraDistance;
+                    
+                    previousMousePosition = {
+                        x: (touches[0].clientX + touches[1].clientX) / 2,
+                        y: (touches[0].clientY + touches[1].clientY) / 2
+                    };
+                }
+            }, { passive: false });
+
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                touches = Array.from(e.touches);
+
+                if (touches.length === 1 && isDragging) {
+                    // Obracanie jednym palcem
+                    const deltaX = touches[0].clientX - previousMousePosition.x;
+                    const deltaY = touches[0].clientY - previousMousePosition.y;
+
+                    cameraRotation.theta -= deltaX * 0.01;
+                    cameraRotation.phi -= deltaY * 0.01;
+                    cameraRotation.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraRotation.phi));
+
+                    updateCameraPosition();
+                    previousMousePosition = { x: touches[0].clientX, y: touches[0].clientY };
+                    
+                } else if (touches.length === 2) {
+                    // Pinch zoom
+                    const dx = touches[0].clientX - touches[1].clientX;
+                    const dy = touches[0].clientY - touches[1].clientY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    const scale = touchStartDistance / distance;
+                    cameraDistance = initialCameraDistance * scale;
+                    cameraDistance = Math.max(10, Math.min(100, cameraDistance));
+                    
+                    // Przesuwanie dwoma palcami
+                    const currentMidpoint = {
+                        x: (touches[0].clientX + touches[1].clientX) / 2,
+                        y: (touches[0].clientY + touches[1].clientY) / 2
+                    };
+                    
+                    const deltaX = currentMidpoint.x - previousMousePosition.x;
+                    const deltaY = currentMidpoint.y - previousMousePosition.y;
+
+                    const viewDirection = new THREE.Vector3();
+                    camera.getWorldDirection(viewDirection);
+                    
+                    const right = new THREE.Vector3();
+                    right.crossVectors(viewDirection, new THREE.Vector3(0, 1, 0)).normalize();
+                    
+                    const up = new THREE.Vector3();
+                    up.crossVectors(right, viewDirection).normalize();
+
+                    const panSpeed = 0.03;
+                    const newTarget = cameraTarget.clone();
+                    newTarget.add(right.multiplyScalar(-deltaX * panSpeed));
+                    newTarget.add(up.multiplyScalar(deltaY * panSpeed));
+
+                    newTarget.x = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.x));
+                    newTarget.y = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.y));
+                    newTarget.z = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, newTarget.z));
+
+                    cameraTarget.copy(newTarget);
+                    previousMousePosition = currentMidpoint;
+                    
+                    updateCameraPosition();
+                }
+            }, { passive: false });
+
+            renderer.domElement.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touches = Array.from(e.touches);
+                
+                if (touches.length === 0) {
+                    isDragging = false;
+                    isPanning = false;
+                } else if (touches.length === 1) {
+                    isDragging = true;
+                    isPanning = false;
+                    previousMousePosition = { x: touches[0].clientX, y: touches[0].clientY };
+                }
+            }, { passive: false });
 
             renderer.domElement.addEventListener('wheel', (e) => {
                 e.preventDefault();
