@@ -56,18 +56,54 @@
         }
 
         .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(2, 5, 16, 0.95);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(2, 5, 16, 0.65);
             backdrop-filter: blur(10px);
-            padding: 25px;
-            border-radius: 15px;
-            max-width: 800px;
-            width: 90%;
+            padding: 0;
+            border-radius: 20px 20px 0 0;
+            max-width: 100%;
+            width: 100%;
             pointer-events: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: none;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .controls.collapsed {
+            transform: translateY(calc(100% - 80px));
+        }
+
+        .controls-header {
+            padding: 15px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+        }
+
+        .controls-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .toggle-icon {
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .controls.collapsed .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .controls-content {
+            padding: 25px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
 
         .date-control {
@@ -93,7 +129,7 @@
 
         .info-panel {
             background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(78, 205, 196, 0.1));
-            padding: 20px;
+            padding: 30px;
             border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -101,13 +137,14 @@
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 20px;
+            margin-top: 20px;
         }
 
         .info-item {
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
+            padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #ffd700;
         }
@@ -195,16 +232,21 @@
                 font-size: 0.9em;
             }
 
-            .controls {
-                width: 95%;
-                padding: 15px;
-                bottom: 10px;
-                max-height: 40vh;
-                overflow-y: auto;
+            .controls.collapsed {
+                transform: translateY(calc(100% - 70px));
+            }
+
+            .controls-header {
+                padding: 12px 20px;
+            }
+
+            .controls-content {
+                padding: 20px;
+                max-height: 70vh;
             }
 
             .camera-controls {
-                display: none; /* Ukryj na mobile - niepotrzebne gdy mamy touch */
+                display: none;
             }
 
             .info-grid {
@@ -255,9 +297,16 @@
                 font-size: 1.3em;
             }
             
-            .controls {
-                max-height: 35vh;
-                padding: 12px;
+            .controls.collapsed {
+                transform: translateY(calc(100% - 60px));
+            }
+
+            .controls-header {
+                padding: 10px 15px;
+            }
+            
+            .controls-content {
+                padding: 15px;
             }
             
             .info-item {
@@ -295,34 +344,36 @@
             🤏 Dwa palce: Zoom i przesuwanie</p>
         </div>
 
-        <div class="controls">
-            <div class="date-control">
-                <label for="dateInput">Wybierz datę:</label>
-                <input type="date" id="dateInput">
+        <div class="controls collapsed">
+            <div class="controls-header" id="controlsToggle">
+                <div class="season-name" id="seasonNameHeader">-</div>
+                <div class="toggle-icon">▲</div>
             </div>
+            
+            <div class="controls-content">
+                <div class="info-panel">
+                    <div class="season-info">
+                        <div class="season-name" id="seasonName">-</div>
+                        <div class="info-label" id="seasonInfo">-</div>
+                        <div class="season-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="seasonProgress">0%</div>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="info-panel">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Data</div>
-                        <div class="info-value" id="currentDate">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Dzień w roku</div>
-                        <div class="info-value" id="dayOfYear">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Pozycja na orbicie</div>
-                        <div class="info-value" id="orbitPosition">-</div>
-                    </div>
-                </div>
-
-                <div class="season-info">
-                    <div class="season-name" id="seasonName">-</div>
-                    <div class="info-label" id="seasonInfo">-</div>
-                    <div class="season-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="seasonProgress">0%</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Data</div>
+                            <div class="info-value" id="currentDate">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Dzień w roku</div>
+                            <div class="info-value" id="dayOfYear">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Pozycja na orbicie</div>
+                            <div class="info-value" id="orbitPosition">-</div>
                         </div>
                     </div>
                 </div>
@@ -545,7 +596,6 @@
             const controlTexts = document.querySelectorAll('.camera-controls p')[0];
             controlTexts.innerHTML = `🖱️ ${t.leftClick}<br>🖱️ ${t.rightClick}<br>🔄 ${t.scroll}`;
             
-            document.querySelector('label[for="dateInput"]').textContent = t.selectDate;
             document.querySelectorAll('.info-label')[0].textContent = t.date;
             document.querySelectorAll('.info-label')[1].textContent = t.dayOfYear;
             document.querySelectorAll('.info-label')[2].textContent = t.orbitPosition;
@@ -1146,6 +1196,17 @@
             const progressBar = document.getElementById('seasonProgress');
             progressBar.style.width = `${seasonInfo.progress}%`;
             progressBar.textContent = `${Math.round(seasonInfo.progress)}%`;
+            
+            // Aktualizuj nagłówek (dla zwiniętego UI)
+            updateHeader(seasonInfo);
+        }
+
+        // Funkcja aktualizująca nagłówek (dla zwiniętego UI)
+        function updateHeader(seasonInfo) {
+            const seasonNameHeader = document.getElementById('seasonNameHeader');
+            if (seasonNameHeader) {
+                seasonNameHeader.textContent = seasonInfo.name;
+            }
         }
 
         function animate() {
@@ -1170,22 +1231,15 @@
         // Obsługa wyboru daty
         const dateInput = document.getElementById('dateInput');
         
-        function setDateInputToToday() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
-        }
-
-        dateInput.addEventListener('change', () => {
-            currentDate = new Date(dateInput.value);
-            updateEarthPosition(currentDate);
-            updateInfo(currentDate);
+        // Obsługa przycisku rozwijania/zwijania UI
+        const controlsToggle = document.getElementById('controlsToggle');
+        const controlsPanel = document.querySelector('.controls');
+        
+        controlsToggle.addEventListener('click', () => {
+            controlsPanel.classList.toggle('collapsed');
         });
 
         // Inicjalizacja
-        setDateInputToToday();
         updateUITexts(); // Zaktualizuj teksty interfejsu
         init();
         updateInfo(currentDate);
